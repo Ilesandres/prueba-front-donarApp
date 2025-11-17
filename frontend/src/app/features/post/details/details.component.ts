@@ -397,4 +397,18 @@ export class DetailsComponent implements OnInit, OnDestroy {
     };
     return typeColors[typeName] || 'bg-gray-100 text-gray-800';
   }
+
+  getAvatarUrl(username: string, profilePhoto?: string): string {
+    if (profilePhoto) {
+      return profilePhoto;
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
+  }
+
+  onImageError(event: Event, username: string): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = this.getAvatarUrl(username);
+    }
+  }
 }

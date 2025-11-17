@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface UserManagement {
@@ -192,6 +192,58 @@ export class UserManagementService {
     return this.http.post<UserManagement>(this.apiUrl, user).pipe(
       catchError((error) => {
         console.error('Error creating user:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener todos los donantes (usuarios con rol de donante)
+   * Usa el endpoint /user/minimal/all/donors similar a /user/minimal/all/organizations
+   */
+  getDonors(): Observable<UserManagement[]> {
+    // Intentar primero con el endpoint para todos los donantes
+    const url = `${this.apiUrl}/minimal/all/donors`;
+    console.log('Llamando al endpoint:', url);
+    return this.http.get<UserManagement[]>(url).pipe(
+      tap((data) => {
+        console.log('Respuesta del endpoint /user/minimal/all/donors:', data);
+        console.log('Tipo de datos:', Array.isArray(data) ? 'Array' : typeof data);
+        if (Array.isArray(data) && data.length > 0) {
+          console.log('Primer usuario de ejemplo:', JSON.stringify(data[0], null, 2));
+        }
+      }),
+      catchError((error) => {
+        console.error('Error con /user/minimal/all/donors, intentando alternativa:', error);
+        // Si falla, intentar con el endpoint que requiere ID de usuario
+        // Necesitamos obtener el ID del usuario actual
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener donantes usando el ID del usuario actual
+   * Usa el endpoint /user/minimal/{idUser}
+   * El endpoint puede devolver un objeto o un array
+   */
+  getDonorsByUserId(userId: number): Observable<any> {
+    const url = `${this.apiUrl}/minimal/${userId}`;
+    console.log('Llamando al endpoint con ID de usuario:', url);
+    return this.http.get<any>(url).pipe(
+      tap((data) => {
+        console.log('Respuesta del endpoint /user/minimal/{idUser}:', data);
+        console.log('Tipo de datos:', Array.isArray(data) ? 'Array' : typeof data);
+        console.log('Estructura completa:', JSON.stringify(data, null, 2));
+        if (Array.isArray(data) && data.length > 0) {
+          console.log('Primer usuario de ejemplo:', JSON.stringify(data[0], null, 2));
+        } else if (data && typeof data === 'object') {
+          console.log('Claves del objeto:', Object.keys(data));
+        }
+      }),
+      catchError((error) => {
+        console.error('Error fetching donors by user ID:', error);
+        console.error('Error completo:', JSON.stringify(error, null, 2));
         return throwError(() => error);
       })
     );

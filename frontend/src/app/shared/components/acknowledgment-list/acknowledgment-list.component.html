@@ -1,0 +1,345 @@
+<div class="w-full" role="region" aria-label="Lista de agradecimientos">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-12" role="status" aria-live="polite">
+    <div class="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mb-4" aria-hidden="true"></div>
+    <p class="text-gray-600 text-sm">Cargando agradecimientos...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="flex flex-col items-center justify-center py-12 px-4 bg-red-50 rounded-lg border border-red-200" role="alert" aria-live="assertive">
+    <svg class="w-12 h-12 text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <p class="text-red-800 font-medium mb-4 text-center">{{ error }}</p>
+    <button 
+      type="button"
+      (click)="loadAcknowledgments()"
+      class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+      aria-label="Reintentar cargar agradecimientos"
+    >
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && acknowledgments.length === 0" class="flex flex-col items-center justify-center py-12 text-gray-500">
+    <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+    </svg>
+    <p class="text-lg">No hay agradecimientos aún</p>
+  </div>
+
+  <!-- Acknowledgments List -->
+  <div *ngIf="!loading && !error && acknowledgments.length > 0" class="space-y-4">
+    <h3 class="text-xl font-semibold text-gray-900 mb-4">Agradecimientos recibidos</h3>
+    
+    <div class="space-y-4" role="list">
+      <article 
+        *ngFor="let ack of acknowledgments; trackBy: trackByAckId"
+        [class]="'bg-white rounded-lg shadow-md border p-6 transition-all hover:shadow-lg ' + (isReported(ack) ? 'opacity-75 border-yellow-300 bg-yellow-50' : 'border-gray-200')"
+        role="listitem"
+        [attr.aria-label]="'Agradecimiento de ' + (ack.organization?.username ?? 'organización')"
+      >
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div 
+              class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 overflow-hidden"
+              [attr.aria-label]="'Avatar de ' + (ack.organization?.username || 'organización')"
+            >
+              <img 
+                *ngIf="ack.organization?.profilePhoto"
+                [src]="ack.organization!.profilePhoto"
+                [alt]="'Foto de perfil de ' + (ack.organization?.username || 'organización')"
+                class="w-full h-full object-cover"
+              />
+              <span 
+                *ngIf="!ack.organization?.profilePhoto"
+                class="text-green-700 font-semibold text-lg"
+                aria-hidden="true"
+              >
+                {{ (ack.organization?.username || 'O').charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <div class="flex flex-col">
+              <p class="font-semibold text-gray-900">{{ ack.organization?.username || 'Organización' }}</p>
+              <time 
+                [attr.datetime]="ack.createdAt"
+                class="text-sm text-gray-500"
+              >
+                {{ formatDate(ack.createdAt) }}
+              </time>
+            </div>
+          </div>
+
+          <!-- Report Badge -->
+          <div *ngIf="isReported(ack)" class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium" role="status" aria-label="Agradecimiento reportado">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            Reportado
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div class="mb-4">
+          <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ ack.message }}</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end pt-4 border-t border-gray-100" *ngIf="showReportButton">
+          <button
+            *ngIf="canReport(ack)"
+            type="button"
+            (click)="openReportModal(ack)"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            [disabled]="isReported(ack)"
+            [attr.aria-label]="'Reportar agradecimiento de ' + (ack.organization?.username || 'organización')"
+            [attr.aria-disabled]="isReported(ack)"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            Reportar
+          </button>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Report Modal -->
+  <div 
+    *ngIf="showReportModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="report-modal-title"
+    (click)="closeReportModal()"
+  >
+    <div 
+      class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-in"
+      (click)="$event.stopPropagation()"
+      role="document"
+    >
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h2 id="report-modal-title" class="text-xl font-semibold text-gray-900">Reportar Agradecimiento</h2>
+        <button
+          type="button"
+          (click)="closeReportModal()"
+          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          aria-label="Cerrar modal de reporte"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-sm text-gray-600">
+          ¿Por qué deseas reportar este agradecimiento? Tu reporte será revisado por nuestro equipo.
+        </p>
+
+        <div class="space-y-2">
+          <label for="report-reason" class="block text-sm font-medium text-gray-700">
+            Motivo del reporte
+            <span class="text-red-500 ml-1" aria-label="requerido">*</span>
+          </label>
+          <select
+            id="report-reason"
+            [(ngModel)]="reportReason"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none transition-colors"
+            required
+            aria-required="true"
+            aria-label="Seleccionar motivo del reporte"
+          >
+            <option value="">Selecciona un motivo</option>
+            <option value="inappropriate">Contenido inapropiado</option>
+            <option value="spam">Spam o publicidad</option>
+            <option value="harassment">Acoso o intimidación</option>
+            <option value="fake">Información falsa</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label for="report-comments" class="block text-sm font-medium text-gray-700">
+            Comentarios adicionales (opcional)
+          </label>
+          <textarea
+            id="report-comments"
+            [(ngModel)]="reportExtraComments"
+            rows="3"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none transition-colors"
+            placeholder="Proporciona más detalles sobre el problema..."
+            maxlength="500"
+            aria-label="Comentarios adicionales sobre el reporte"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+        <button
+          type="button"
+          (click)="closeReportModal()"
+          class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
+          [disabled]="reportingId !== null"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          (click)="submitReport()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          [disabled]="!reportReason || reportingId !== null"
+          [attr.aria-busy]="reportingId !== null"
+        >
+          <span *ngIf="reportingId === null">Enviar Reporte</span>
+          <span *ngIf="reportingId !== null" class="flex items-center gap-2">
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Enviando...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación (antes de enviar) -->
+  <div 
+    *ngIf="showConfirmModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-modal-title"
+    (click)="cancelReport()"
+  >
+    <div 
+      class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-in"
+      (click)="$event.stopPropagation()"
+      role="document"
+    >
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h2 id="confirm-modal-title" class="text-xl font-semibold text-gray-900">Confirmar Reporte</h2>
+        <button
+          type="button"
+          (click)="cancelReport()"
+          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          aria-label="Cerrar modal de confirmación"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="flex-shrink-0">
+            <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <p class="text-gray-700 font-medium mb-2">
+              ¿Estás seguro de que deseas reportar este agradecimiento?
+            </p>
+            <p class="text-sm text-gray-600">
+              Motivo: <strong>{{ getReportReasonLabel(reportReason) }}</strong>
+            </p>
+            <p class="text-xs text-gray-500 mt-2">
+              Tu reporte será revisado por nuestro equipo de moderación.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+        <button
+          type="button"
+          (click)="cancelReport()"
+          class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          (click)="confirmReport()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          [disabled]="reportingId !== null"
+        >
+          <span *ngIf="reportingId === null">Sí, Reportar</span>
+          <span *ngIf="reportingId !== null" class="flex items-center gap-2">
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Enviando...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Éxito (después de enviar) -->
+  <div 
+    *ngIf="showSuccessModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="success-modal-title"
+    (click)="closeSuccessModal()"
+  >
+    <div 
+      class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-in"
+      (click)="$event.stopPropagation()"
+      role="document"
+    >
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h2 id="success-modal-title" class="text-xl font-semibold text-gray-900">Reporte Enviado</h2>
+        <button
+          type="button"
+          (click)="closeSuccessModal()"
+          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          aria-label="Cerrar modal de éxito"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6">
+        <div class="flex flex-col items-center text-center py-4">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">
+            ¡Reporte enviado exitosamente!
+          </h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Hemos recibido tu reporte y será revisado por nuestro equipo de moderación.
+          </p>
+          <p class="text-xs text-gray-500">
+            El agradecimiento ha sido marcado como reportado y será evaluado en breve.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+        <button
+          type="button"
+          (click)="closeSuccessModal()"
+          class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

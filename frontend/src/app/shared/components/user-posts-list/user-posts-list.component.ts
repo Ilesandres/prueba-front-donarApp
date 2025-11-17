@@ -6,6 +6,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { Post, PostsService } from '../../../core/services/posts.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScrollRestorationService } from '../../../core/services/scroll-restoration.service';
+import { AcknowledgmentFormComponent } from '../acknowledgment-form/acknowledgment-form.component';
+import { AcknowledgmentListComponent } from '../acknowledgment-list/acknowledgment-list.component';
 
 @Pipe({ name: 'safeUrl' })
 export class SafeUrlPipe implements PipeTransform {
@@ -18,7 +20,7 @@ export class SafeUrlPipe implements PipeTransform {
 @Component({
   selector: 'app-user-posts-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, SafeUrlPipe],
+  imports: [CommonModule, RouterModule, SafeUrlPipe, AcknowledgmentFormComponent, AcknowledgmentListComponent],
   templateUrl: './user-posts-list.component.html',
   styleUrls: ['./user-posts-list.component.scss']
 })
@@ -31,11 +33,15 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
 
   isAuthenticated = false;
   currentUserId: number | null = null;
+  isOrganization = false;
 
   // Image gallery modal
   showImageModal = false;
   currentGalleryFiles: { url: string, type: 'image' | 'video' | 'audio' | 'pdf' | 'doc' }[] = [];
   currentGalleryIndex = 0;
+
+  // Acknowledgments (comentarios) por post
+  showComments: { [postId: number]: boolean } = {};
 
   constructor(
     private router: Router,
@@ -46,6 +52,20 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
     this.isAuthenticated = this.authService.isAuthenticated();
     const currentUser = this.authService.currentUserValue;
     this.currentUserId = currentUser?.id ? Number(currentUser.id) : null;
+    this.isOrganization = currentUser?.role === 'organization';
+  }
+
+  toggleComments(postId: number): void {
+    this.showComments[postId] = !this.showComments[postId];
+  }
+
+  isCommentsOpen(postId: number): boolean {
+    return !!this.showComments[postId];
+  }
+
+  onAcknowledgmentCreated(postId: number): void {
+    // Recargar agradecimientos cuando se crea uno nuevo
+    // El componente AcknowledgmentListComponent maneja su propia recarga
   }
 
   ngOnChanges(changes: SimpleChanges): void {

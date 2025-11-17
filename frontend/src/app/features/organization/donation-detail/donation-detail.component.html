@@ -246,6 +246,32 @@
                     </ng-template>
                   </div>
                 </div>
+
+                <!-- Agradecimientos / Acknowledgments -->
+                <div class="mt-6">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Agradecimientos</h3>
+                  
+                  <!-- Formulario para organizaciones (beneficiarios) dejar agradecimiento -->
+                  <div *ngIf="isBeneficiary && donation" class="mb-6">
+                    <app-acknowledgment-form 
+                      [donationId]="donation.id"
+                      (acknowledgmentCreated)="loadAcknowledgments()">
+                    </app-acknowledgment-form>
+                  </div>
+
+                  <!-- Lista de agradecimientos para donantes ver -->
+                  <div *ngIf="isDonator && donation">
+                    <app-acknowledgment-list 
+                      [donationId]="donation.id"
+                      [showReportButton]="true">
+                    </app-acknowledgment-list>
+                  </div>
+
+                  <!-- Mensaje si no es ni beneficiario ni donante -->
+                  <div *ngIf="!isBeneficiary && !isDonator" class="text-gray-500 italic text-center py-4">
+                    <p>Los agradecimientos solo son visibles para organizaciones y donantes relacionados con esta donación.</p>
+                  </div>
+                </div>
               </div>
             </div>
 

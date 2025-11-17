@@ -1,0 +1,108 @@
+<div class="comment-list" role="region" aria-label="Lista de comentarios">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="loading-text">Cargando comentarios...</p>
+  </div>
+
+  <!-- Error State (solo mostrar si hay un error real, no 404) -->
+  <div *ngIf="error && !loading && error.trim() !== ''" class="error-state" role="alert" aria-live="assertive">
+    <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <p>{{ error }}</p>
+    <button 
+      type="button"
+      (click)="loadComments()"
+      class="retry-button"
+      aria-label="Reintentar cargar comentarios"
+    >
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && comments.length === 0" class="empty-state">
+    <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+    </svg>
+    <p class="empty-text">No hay comentarios aún. ¡Sé el primero en comentar!</p>
+  </div>
+
+  <!-- Comments List -->
+  <div *ngIf="!loading && !error && comments.length > 0" class="comments-container">
+    <div class="comments-list" role="list">
+      <article 
+        *ngFor="let comment of comments; trackBy: trackByCommentId"
+        class="comment-card"
+        role="listitem"
+        [attr.aria-label]="'Comentario de ' + (comment.user?.username ?? 'usuario')"
+      >
+        <!-- Header -->
+        <div class="card-header">
+          <div class="user-info">
+            <div 
+              class="avatar"
+              [attr.aria-label]="'Avatar de ' + (comment.user?.username || 'usuario')"
+            >
+              <img 
+                *ngIf="comment.user?.profilePhoto"
+                [src]="comment.user!.profilePhoto"
+                [alt]="'Foto de perfil de ' + (comment.user?.username || 'usuario')"
+                class="avatar-image"
+              />
+              <span 
+                *ngIf="!comment.user?.profilePhoto"
+                class="avatar-initial"
+                aria-hidden="true"
+              >
+                {{ (comment.user?.username || 'U').charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <div class="user-details">
+              <div class="username-row">
+                <p class="username">{{ comment.user?.username || 'Usuario' }}</p>
+                <div *ngIf="comment.user?.verified" class="verified-badge" title="Usuario verificado">
+                  <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+              <time 
+                [attr.datetime]="comment.createdAt"
+                class="timestamp"
+              >
+                {{ formatDate(comment.createdAt) }}
+              </time>
+            </div>
+          </div>
+
+          <!-- Delete Button (only for own comments) -->
+          <button
+            *ngIf="canDelete(comment)"
+            type="button"
+            (click)="deleteComment(comment)"
+            [disabled]="deletingId === comment.id"
+            class="delete-button"
+            [attr.aria-label]="'Eliminar comentario'"
+            title="Eliminar comentario"
+          >
+            <svg *ngIf="deletingId !== comment.id" class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            <svg *ngIf="deletingId === comment.id" class="button-icon animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Comment Text -->
+        <div class="card-body">
+          <p class="comment-text">{{ comment.comment }}</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>
+

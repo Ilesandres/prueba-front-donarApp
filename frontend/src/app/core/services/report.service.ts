@@ -79,5 +79,17 @@ export class ReportService {
       })
     );
   }
+
+  /**
+   * Crear un nuevo reporte
+   */
+  createReport(data: {
+    report: string;
+    extraComments?: string;
+    postReport?: string;
+    acknowledgmentId?: number;
+  }): Observable<{ message: string; success: boolean; reportId?: number }> {
+    return this.http.post<{ message: string; success: boolean; reportId?: number }>(`${this.apiUrl}/create/new`, data);
+  }
 }
 

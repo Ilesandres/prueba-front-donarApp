@@ -1,0 +1,139 @@
+.comment-list {
+  @apply w-full;
+
+  // Loading State
+  .loading-state {
+    @apply flex flex-col items-center justify-center py-12;
+
+    .spinner {
+      @apply w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4;
+    }
+
+    .loading-text {
+      @apply text-gray-600 text-sm;
+    }
+  }
+
+  // Error State
+  .error-state {
+    @apply flex flex-col items-center justify-center py-12 px-4 bg-red-50 rounded-lg border border-red-200;
+
+    .error-icon {
+      @apply w-12 h-12 text-red-600 mb-4;
+    }
+
+    p {
+      @apply text-red-800 font-medium mb-4 text-center;
+    }
+
+    .retry-button {
+      @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 
+             focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+             transition-colors;
+    }
+  }
+
+  // Empty State
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-gray-500;
+
+    .empty-icon {
+      @apply w-16 h-16 mb-4 text-gray-400;
+    }
+
+    .empty-text {
+      @apply text-lg text-center;
+    }
+  }
+
+  // Comments Container
+  .comments-container {
+    @apply space-y-4;
+
+    .comments-list {
+      @apply space-y-4;
+
+      .comment-card {
+        @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4
+               transition-all hover:shadow-md;
+
+        .card-header {
+          @apply flex items-start justify-between mb-3;
+
+          .user-info {
+            @apply flex items-center gap-3 flex-1;
+
+            .avatar {
+              @apply w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center
+                     flex-shrink-0 overflow-hidden;
+
+              .avatar-image {
+                @apply w-full h-full object-cover;
+              }
+
+              .avatar-initial {
+                @apply text-blue-700 font-semibold text-base;
+              }
+            }
+
+            .user-details {
+              @apply flex flex-col flex-1;
+
+              .username-row {
+                @apply flex items-center gap-2;
+
+                .username {
+                  @apply font-semibold text-gray-900;
+                }
+
+                .verified-badge {
+                  @apply flex items-center;
+                }
+              }
+
+              .timestamp {
+                @apply text-xs text-gray-500;
+              }
+            }
+          }
+
+          .delete-button {
+            @apply p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50
+                   focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+
+            .button-icon {
+              @apply w-4 h-4;
+            }
+          }
+        }
+
+        .card-body {
+          @apply mb-0;
+
+          .comment-text {
+            @apply text-gray-700 leading-relaxed whitespace-pre-wrap;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 640px) {
+  .comment-list {
+    .comments-container {
+      .comments-list {
+        .comment-card {
+          @apply p-3;
+
+          .card-header .user-info .avatar {
+            @apply w-8 h-8;
+          }
+        }
+      }
+    }
+  }
+}
+

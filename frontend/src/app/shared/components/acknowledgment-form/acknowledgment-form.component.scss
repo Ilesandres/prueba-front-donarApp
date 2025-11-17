@@ -1,0 +1,15 @@
+// Responsive
+@media (max-width: 640px) {
+  .bg-white.rounded-lg.shadow-md {
+    padding: 1rem;
+  }
+  
+  textarea {
+    font-size: 1rem; // Mejor legibilidad en móvil
+  }
+  
+  button {
+    padding-top: 0.875rem; // Área táctil más grande
+    padding-bottom: 0.875rem;
+  }
+}

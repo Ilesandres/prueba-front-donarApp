@@ -8,11 +8,13 @@ import { MessageService } from '../../../core/services/message.service';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
+import { AcknowledgmentFormComponent } from '../../../shared/components/acknowledgment-form/acknowledgment-form.component';
+import { AcknowledgmentListComponent } from '../../../shared/components/acknowledgment-list/acknowledgment-list.component';
 
 @Component({
   selector: 'app-donation-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, AcknowledgmentFormComponent, AcknowledgmentListComponent],
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
@@ -209,6 +211,12 @@ export class DonationDetailComponent implements OnInit {
     this.canDeleteDonation = isDonator;
 
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
+  }
+
+  loadAcknowledgments(): void {
+    // Este método se llama cuando se crea un nuevo agradecimiento
+    // El componente AcknowledgmentListComponent se recargará automáticamente
+    // No necesitamos hacer nada aquí ya que el componente maneja su propia carga
   }
 
   onEdit(): void {
