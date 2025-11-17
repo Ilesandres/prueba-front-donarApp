@@ -1,2 +1,508 @@
-// Estilos específicos para el componente reports si son necesarios
+// Estilos específicos para el componente reports
 
+// Animaciones personalizadas
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+  }
+}
+
+// Clases personalizadas
+.report-card {
+  animation: slideInUp 0.5s ease-out;
+
+  &:hover {
+    animation: fadeInScale 0.3s ease-out;
+  }
+}
+
+.modal-content {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+// Efectos de hover avanzados
+.report-badge {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Botón con efecto de brillo
+.action-button {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+  }
+
+  &:hover::before {
+    left: 100%;
+  }
+}
+
+// Contenedor de filtros con efecto fade
+.filters-container {
+  max-height: 500px;
+  opacity: 1;
+  transition: all 0.3s ease-out;
+
+  &.collapsed {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+}
+
+// Efectos en elementos de información
+.info-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease-out;
+
+  &:hover {
+    transform: translateX(2px);
+  }
+}
+
+// Estilo para el indicador de carga mejorado
+.loading-spinner {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+
+  .spinner-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    animation: spin 1s linear infinite;
+
+    &:nth-child(1) {
+      border-top-color: #f97316;
+      animation-delay: 0s;
+    }
+
+    &:nth-child(2) {
+      border-right-color: #22c55e;
+      animation-delay: -0.3s;
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+// Transiciones suaves en inputs
+.form-input {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  }
+}
+
+// Estilos para las tarjetas de reporte
+.report-item {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f97316, #22c55e, #f97316);
+    border-radius: 0.75rem 0.75rem 0 0;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease-out;
+  }
+
+  &:hover::before {
+    transform: scaleX(1);
+  }
+}
+
+// Modal backdrop mejorado
+.modal-backdrop {
+  animation: fadeIn 0.3s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+// Modal improvements for mobile
+.modal-mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 100vh;
+  border-radius: 1.875rem 1.875rem 0 0; // rounded-t-3xl
+  animation: slideUpMobile 0.3s ease-out;
+
+  @keyframes slideUpMobile {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @media (min-width: 640px) {
+    bottom: auto;
+    border-radius: 1.875rem;
+    animation: fadeInScale 0.3s ease-out;
+  }
+}
+
+// Modal content scrolling
+.modal-scrollable {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
+
+  // Custom scrollbar para navegadores que lo soportan
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+
+    &:hover {
+      background: #94a3b8;
+    }
+  }
+}
+
+// Modal header responsive
+.modal-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+// Modal footer responsive
+.modal-footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+// Mejora de cards dentro del modal
+.modal-card {
+  transition: all 0.2s ease-out;
+
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Gradientes personalizados
+.gradient-header {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #22c55e 100%);
+  animation: slideInDown 0.5s ease-out;
+
+  @keyframes slideInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+// Efecto de sombra mejorada en hover
+.shadow-lift {
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+  }
+}
+
+// Estilos para el estado vacío
+.empty-state {
+  animation: fadeInScale 0.5s ease-out;
+}
+
+// Botones con efecto ripple
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  &:active::after {
+    animation: ripple 0.6s ease-out;
+  }
+}
+
+// Estilos responsivos mejorados
+@media (max-width: 1024px) {
+  .report-card {
+    animation: none;
+
+    &:hover {
+      animation: none;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .report-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .action-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  // Botones full width en mobile
+  .btn-full-mobile {
+    width: 100%;
+  }
+
+  // Reduce padding en mobile
+  .card-mobile-compact {
+    padding: 1rem;
+  }
+
+  // Ocultar algunos elementos en pantallas muy pequeñas
+  .hide-mobile {
+    display: none;
+  }
+
+  // Tamaño de fuente más legible en mobile
+  .text-mobile-readable {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  // Extra small devices
+  .report-item {
+    &::before {
+      height: 2px;
+    }
+  }
+
+  // Espaciado comprimido
+  .gap-mobile-compact {
+    gap: 0.5rem;
+  }
+
+  // Padding reducido para mobile extremo
+  .p-mobile-tight {
+    padding: 0.75rem;
+  }
+
+  // Flexbox stack para mobile
+  .flex-mobile-stack {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Ancho completo para botones
+  button {
+    &.btn-mobile-full {
+      width: 100%;
+    }
+  }
+
+  // Input más grande para móvil (mejor para tap)
+  input,
+  select {
+    padding: 0.75rem;
+    font-size: 16px; // Evita zoom en iOS
+    border-radius: 0.5rem;
+  }
+
+  // Grid responsivo para filtros
+  .filters-grid-mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  // Reducir shadow en mobile por performance
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  // Transiciones más suaves en mobile (mejor performance)
+  * {
+    transition-duration: 0.2s;
+  }
+
+  // Modal mejor en mobile
+  .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  // Tooltips y badges compactos
+  .badge-mobile {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+}
+
+// Tablet optimizations (640px - 1024px)
+@media (min-width: 640px) and (max-width: 1024px) {
+  .report-card {
+    margin: 0 auto;
+  }
+
+  // Filtros en 2 columnas
+  .filters-grid-tablet {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}
+
+// Landscape mobile optimization
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal-content {
+    max-height: 85vh;
+  }
+
+  .padding-reduce {
+    padding: 0.5rem;
+  }
+
+  .gap-reduce {
+    gap: 0.5rem;
+  }
+}
+
+// Touch device improvements
+@media (hover: none) and (pointer: coarse) {
+  // Aumentar tamaño de hit targets para touch
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  // Remover hover effects que no funcionan bien en touch
+  .hover\:shadow-lg:hover {
+    box-shadow: none;
+  }
+
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+
+  // Agregar active states en lugar de hover
+  .touch-active:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+
+  // Inputs más grandes para touch
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+    padding: 0.75rem 1rem;
+  }
+}

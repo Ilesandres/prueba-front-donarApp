@@ -10,6 +10,11 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
+import { FormsModule } from '@angular/forms';
+import { CommentFormComponent } from '../../../shared/components/comment-form/comment-form.component';
+import { CommentListComponent } from '../../../shared/components/comment-list/comment-list.component';
+import { ReportService } from '../../../core/services/report.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Pipe({ name: 'safeUrl' })
 export class SafeUrlPipe implements PipeTransform {
@@ -21,7 +26,18 @@ export class SafeUrlPipe implements PipeTransform {
 
 @Component({
   selector: 'app-list',
-  imports: [CommonModule, RouterModule, ButtonComponent, SidebarComponent, SafeUrlPipe, SpinnerComponent],
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    ButtonComponent,
+    SidebarComponent,
+    SafeUrlPipe,
+    SpinnerComponent,
+    FormsModule,
+    CommentFormComponent,
+    CommentListComponent
+  ],
   templateUrl: './list.component.html',
   styleUrl: './list.component.scss'
 })
@@ -57,6 +73,7 @@ export class ListComponent implements OnInit, OnDestroy {
   isLoading = false;
   errorMessage = '';
   isAuthenticated = false;
+  currentUserRole: string | null = null;
   
   selectedTypeId: number | null = null;
   searchTerm = '';
@@ -72,10 +89,30 @@ export class ListComponent implements OnInit, OnDestroy {
 
   showDropdownId: number | null = null;
   currentUserId: number | null = null;
+  openComments = new Set<number>();
+  commentRefreshTrigger: Record<number, number> = {};
+  reportedPostIds = new Set<number>();
 
   showLikesModal = false;
   usersWhoLiked: PostLiked[] = [];
   loadingLikes = false;
+
+  showReportModal = false;
+  showReportConfirmModal = false;
+  showReportSuccessModal = false;
+  selectedPostForReport: Post | null = null;
+  reportReason = '';
+  reportExtraComments = '';
+  reportError = '';
+  isReporting = false;
+  reportReasonOptions = [
+    { value: 'inappropriate', label: 'Contenido inapropiado' },
+    { value: 'spam', label: 'Spam o publicidad' },
+    { value: 'fraud', label: 'Estafa o fraude' },
+    { value: 'harassment', label: 'Acoso o discurso de odio' },
+    { value: 'fake', label: 'Información falsa' },
+    { value: 'other', label: 'Otro' }
+  ];
 
   // Cache de permisos
   private _canLike: boolean | null = null;
@@ -90,7 +127,9 @@ export class ListComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private route: ActivatedRoute,
     private viewportScroller: ViewportScroller,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private reportService: ReportService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -126,12 +165,14 @@ export class ListComponent implements OnInit, OnDestroy {
     
     const currentUser = this.authService.currentUserValue;
     this.currentUserId = currentUser?.id ? Number(currentUser.id) : null;
+    this.currentUserRole = currentUser?.role || null;
     
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe((user) => {
         this.isAuthenticated = this.authService.isAuthenticated();
         this.currentUserId = user?.id ? Number(user.id) : null;
+        this.currentUserRole = user?.role || null;
         // Invalidar cache de permisos cuando cambia el usuario
         this._canLike = null;
         this._canRequestDonation = null;
@@ -548,6 +589,114 @@ export class ListComponent implements OnInit, OnDestroy {
     }
   }
 
+  canReport(post: Post): boolean {
+    if (!post || !this.isAuthenticated) return false;
+    const role = (this.currentUserRole || '').toLowerCase();
+    const isDonor = role === 'donor' || role === 'donante' || role === 'user';
+    return isDonor && !this.isPostOwner(post) && !this.isPostReported(post);
+  }
+
+  isPostReported(post: Post): boolean {
+    return this.reportedPostIds.has(post.id) || Boolean((post as any)?.isReported);
+  }
+
+  openReportModal(post: Post): void {
+    if (!this.isAuthenticated) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    if (!this.canReport(post)) {
+      this.toastService.warning('No permitido', 'Solo los donantes pueden reportar publicaciones de otras organizaciones.');
+      return;
+    }
+
+    this.selectedPostForReport = post;
+    this.reportReason = '';
+    this.reportExtraComments = '';
+    this.reportError = '';
+    this.showReportModal = true;
+    this.showReportConfirmModal = false;
+  }
+
+  closeReportModal(): void {
+    this.showReportModal = false;
+    this.showReportConfirmModal = false;
+    this.reportReason = '';
+    this.reportExtraComments = '';
+    this.reportError = '';
+    this.selectedPostForReport = null;
+  }
+
+  submitReport(): void {
+    if (!this.selectedPostForReport) {
+      this.reportError = 'No se encontró la publicación seleccionada';
+      return;
+    }
+
+    if (!this.reportReason.trim()) {
+      this.reportError = 'Selecciona un motivo para el reporte';
+      return;
+    }
+
+    this.reportError = '';
+    this.showReportConfirmModal = true;
+  }
+
+  cancelReportConfirmation(): void {
+    this.showReportConfirmModal = false;
+  }
+
+  confirmReport(): void {
+    if (!this.selectedPostForReport || !this.reportReason.trim()) {
+      return;
+    }
+
+    this.isReporting = true;
+
+    const payload = {
+      report: this.reportReason,
+      extraComments: this.reportExtraComments?.trim() || undefined,
+      postReport: this.buildPostReportSummary(this.selectedPostForReport),
+      postId: this.selectedPostForReport.id,
+      idUser: this.currentUserId || undefined
+    };
+
+    this.reportService.createReport(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          if (this.selectedPostForReport) {
+            this.reportedPostIds.add(this.selectedPostForReport.id);
+          }
+
+          this.toastService.success('Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura.');
+          this.isReporting = false;
+          this.showReportConfirmModal = false;
+          this.showReportModal = false;
+          this.showReportSuccessModal = true;
+          this.selectedPostForReport = null;
+          this.reportReason = '';
+          this.reportExtraComments = '';
+        },
+        error: (err) => {
+          const message = err?.error?.message || 'No se pudo enviar el reporte. Intenta nuevamente';
+          this.toastService.error('Error al reportar', message);
+          this.isReporting = false;
+          this.showReportConfirmModal = false;
+        }
+      });
+  }
+
+  closeReportSuccessModal(): void {
+    this.showReportSuccessModal = false;
+  }
+
+  private buildPostReportSummary(post: Post): string {
+    const author = post?.user?.username || 'Usuario desconocido';
+    return `POST #${post.id} - "${post.title}" de ${author}`;
+  }
+
   handleCreatePost(): void {
     if (!this.authService.canCreatePost()) {
       if (!this.authService.isAuthenticated()) {
@@ -611,6 +760,34 @@ export class ListComponent implements OnInit, OnDestroy {
     if (this.currentGalleryIndex > 0) {
       this.currentGalleryIndex--;
     }
+  }
+
+  toggleComments(postId: number): void {
+    if (this.openComments.has(postId)) {
+      this.openComments.delete(postId);
+    } else {
+      this.openComments.add(postId);
+    }
+  }
+
+  isCommentsOpen(postId: number): boolean {
+    return this.openComments.has(postId);
+  }
+
+  getCommentRefreshTrigger(postId: number): number {
+    return this.commentRefreshTrigger[postId] || 0;
+  }
+
+  handleCommentCreated(postId: number): void {
+    this.commentRefreshTrigger[postId] = (this.commentRefreshTrigger[postId] || 0) + 1;
+  }
+
+  handleCommentDeleted(postId: number): void {
+    this.commentRefreshTrigger[postId] = (this.commentRefreshTrigger[postId] || 0) + 1;
+  }
+
+  goToLogin(): void {
+    this.router.navigate(['/auth/login']);
   }
 
   onKeyDown(event: KeyboardEvent): void {

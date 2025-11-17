@@ -88,8 +88,28 @@ export class ReportService {
     extraComments?: string;
     postReport?: string;
     acknowledgmentId?: number;
+    postId?: number;
+    idUser?: number;
   }): Observable<{ message: string; success: boolean; reportId?: number }> {
-    return this.http.post<{ message: string; success: boolean; reportId?: number }>(`${this.apiUrl}/create/new`, data);
+    // Construir el payload en el formato esperado por el backend
+    const payload: any = {
+      idUser: data.idUser,
+      comments: {
+        report: data.report,
+        ...(data.extraComments && { extraComments: data.extraComments }),
+        ...(data.postReport && { postReport: data.postReport })
+      }
+    };
+
+    if (data.postId) {
+      payload.postId = data.postId;
+    }
+
+    if (data.acknowledgmentId) {
+      payload.acknowledgmentId = data.acknowledgmentId;
+    }
+
+    return this.http.post<{ message: string; success: boolean; reportId?: number }>(`${this.apiUrl}/create/new`, payload);
   }
 }
 

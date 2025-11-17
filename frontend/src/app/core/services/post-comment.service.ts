@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
@@ -50,7 +50,14 @@ export class PostCommentService {
    * Crear un nuevo comentario en una publicación
    */
   createComment(data: CreatePostCommentDTO): Observable<PostComment> {
-    return this.http.post<PostComment>(`${this.apiUrl}/create/new`, data);
+    return this.http.post<PostComment>(`${this.apiUrl}/create`, data).pipe(
+      catchError((err) => {
+        if (err?.status === 404) {
+          return this.http.post<PostComment>(`${this.apiUrl}/create/new`, data);
+        }
+        return throwError(() => err);
+      })
+    );
   }
 
   /**

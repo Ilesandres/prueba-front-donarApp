@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PostCommentService, PostComment } from '../../../core/services/post-comment.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -12,8 +12,9 @@ import { Subject, takeUntil } from 'rxjs';
   templateUrl: './comment-list.component.html',
   styleUrls: ['./comment-list.component.scss']
 })
-export class CommentListComponent implements OnInit, OnDestroy {
+export class CommentListComponent implements OnInit, OnDestroy, OnChanges {
   @Input() postId!: number;
+  @Input() refreshTrigger: number = 0;
   @Output() commentDeleted = new EventEmitter<number>();
 
   comments: PostComment[] = [];
@@ -43,6 +44,12 @@ export class CommentListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['refreshTrigger'] && !changes['refreshTrigger'].firstChange) {
+      this.loadComments();
+    }
   }
 
   loadComments(): void {

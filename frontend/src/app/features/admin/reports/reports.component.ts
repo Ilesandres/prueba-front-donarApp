@@ -18,6 +18,8 @@ export class ReportsComponent implements OnInit, OnDestroy {
   loading = false;
   loadingMore = false;
   errorMessage = '';
+  showDetailsModal = false;
+  selectedReport: Report | null = null;
 
   // Filtros
   filterForm!: FormGroup;
@@ -100,8 +102,19 @@ export class ReportsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error loading reports:', error);
-          const errorMessage = error?.error?.message || error?.message || 'No se pudieron cargar los reportes';
-          alert(`Error: ${errorMessage}`);
+          const statusCode = error?.status || error?.statusCode;
+          
+          if (statusCode === 403) {
+            this.errorMessage = 'No tienes permisos para ver los reportes. Contacta al administrador del sistema.';
+          } else if (statusCode === 401) {
+            this.errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+          } else if (statusCode === 404) {
+            this.errorMessage = 'El endpoint de reportes no está disponible. Verifica la configuración del backend.';
+          } else {
+            const errorMessage = error?.error?.message || error?.message || 'No se pudieron cargar los reportes';
+            this.errorMessage = `Error al cargar los reportes: ${errorMessage}`;
+          }
+          
           this.loading = false;
           this.loadingMore = false;
           this.reports = [];
@@ -181,7 +194,29 @@ export class ReportsComponent implements OnInit, OnDestroy {
    * Ver detalles del reporte
    */
   viewReportDetails(report: Report): void {
-    alert(`ID: ${report.id}\n\nUsuario: ${report.user.username}\nReporte: ${report.comments.report}\nComentarios Extra: ${report.comments.extraComments || 'N/A'}\nPost Reportado: ${report.comments.postReport}\n\nFecha: ${this.formatDate(report.createdAt)}`);
+    this.selectedReport = report;
+    this.showDetailsModal = true;
+  }
+
+  closeReportDetails(): void {
+    this.showDetailsModal = false;
+    this.selectedReport = null;
+  }
+
+  getUserInitials(username: string): string {
+    if (!username) return '?';
+    const parts = username.trim().split(' ');
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase();
+    }
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement | null;
+    if (img) {
+      img.style.display = 'none';
+    }
   }
 }
 

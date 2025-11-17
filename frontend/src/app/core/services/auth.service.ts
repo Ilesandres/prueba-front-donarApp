@@ -266,6 +266,23 @@ export class AuthService {
       if (payload) {
         const currentUser = this.getCurrentUser();
         if (currentUser && currentUser.id === (payload.sub || payload.id)) {
+          // Preservar el rol del usuario actual si es admin
+          const rawRole = payload.role || payload.roles || payload.rol;
+          if (currentUser.role === 'admin' && rawRole && this.normalizeRole(rawRole) !== 'admin') {
+            console.warn('[AuthService] updateTokenSilently - Token tiene rol diferente, preservando rol admin del usuario actual');
+            // No actualizar el usuario, solo actualizar el token
+          } else if (rawRole) {
+            // Actualizar el rol solo si el token tiene un rol válido
+            const normalizedRole = this.normalizeRole(rawRole);
+            if (normalizedRole !== currentUser.role) {
+              const updatedUser: User = {
+                ...currentUser,
+                role: normalizedRole
+              };
+              this.setCurrentUser(updatedUser);
+            }
+          }
+          
           if (this.websocketService) {
             if ((environment as any)['debugWs'] || (environment as any)['debug']) {
               try { console.debug('[AuthService] updateTokenSilently - reconnecting websockets with refreshed token'); } catch (e) {}
@@ -457,17 +474,41 @@ export class AuthService {
           
           const payload = this.decodeToken(newToken);
           if (payload) {
-            const rawRole = payload.role || payload.roles || payload.rol || 'donor';
-            const normalizedRole = this.normalizeRole(rawRole);
+            const currentUser = this.getCurrentUser();
+            const rawRole = payload.role || payload.roles || payload.rol;
+            
+            console.log('[AuthService] refreshToken - Token payload:', {
+              rawRole,
+              currentUserRole: currentUser?.role,
+              payload: payload
+            });
+            
+            // Si el usuario actual es admin, preservar ese rol incluso si el token tiene otro
+            // Esto previene que se pierda el rol de admin durante el refresh
+            let normalizedRole: 'donor' | 'organization' | 'admin';
+            
+            if (currentUser?.role === 'admin') {
+              // Si el usuario actual es admin, mantenerlo como admin
+              normalizedRole = 'admin';
+              console.log('[AuthService] refreshToken - Preservando rol admin del usuario actual');
+            } else if (rawRole) {
+              // Si hay un rol en el token, normalizarlo
+              normalizedRole = this.normalizeRole(rawRole);
+            } else {
+              // Si no hay rol en el token, usar el rol del usuario actual o 'donor' por defecto
+              normalizedRole = currentUser?.role || 'donor';
+              console.warn('[AuthService] refreshToken - No se encontró rol en el token, usando rol del usuario actual:', normalizedRole);
+            }
             
             const user: User = {
-              id: payload.sub || payload.id || '',
-              email: payload.email || '',
+              id: payload.sub || payload.id || currentUser?.id || '',
+              email: payload.email || currentUser?.email || '',
               role: normalizedRole,
-              name: payload.name || '',
-              verified: payload.verified || false
+              name: payload.name || currentUser?.name || '',
+              verified: payload.verified !== undefined ? payload.verified : (currentUser?.verified || false)
             };
             
+            console.log('[AuthService] refreshToken - Usuario actualizado:', { id: user.id, email: user.email, role: user.role });
             this.setCurrentUser(user);
           }
           
@@ -506,17 +547,37 @@ export class AuthService {
           this.setAccessToken(newToken);
                 const payload = this.decodeToken(newToken);
                 if (payload) {
-                  const rawRole = payload.role || payload.roles || payload.rol || 'donor';
-                  const normalizedRole = this.normalizeRole(rawRole);
+                  const currentUser = this.getCurrentUser();
+                  const rawRole = payload.role || payload.roles || payload.rol;
+                  
+                  console.log('[AuthService] refreshToken (fallback) - Token payload:', {
+                    rawRole,
+                    currentUserRole: currentUser?.role,
+                    payload: payload
+                  });
+                  
+                  // Si el usuario actual es admin, preservar ese rol
+                  let normalizedRole: 'donor' | 'organization' | 'admin';
+                  
+                  if (currentUser?.role === 'admin') {
+                    normalizedRole = 'admin';
+                    console.log('[AuthService] refreshToken (fallback) - Preservando rol admin del usuario actual');
+                  } else if (rawRole) {
+                    normalizedRole = this.normalizeRole(rawRole);
+                  } else {
+                    normalizedRole = currentUser?.role || 'donor';
+                    console.warn('[AuthService] refreshToken (fallback) - No se encontró rol en el token, usando rol del usuario actual:', normalizedRole);
+                  }
                   
                   const user: User = {
-                    id: payload.sub || payload.id || '',
-                    email: payload.email || '',
+                    id: payload.sub || payload.id || currentUser?.id || '',
+                    email: payload.email || currentUser?.email || '',
                     role: normalizedRole,
-                    name: payload.name || '',
-                    verified: payload.verified || false
+                    name: payload.name || currentUser?.name || '',
+                    verified: payload.verified !== undefined ? payload.verified : (currentUser?.verified || false)
                   };
                   
+                  console.log('[AuthService] refreshToken (fallback) - Usuario actualizado:', { id: user.id, email: user.email, role: user.role });
                   this.setCurrentUser(user);
                 }
                 

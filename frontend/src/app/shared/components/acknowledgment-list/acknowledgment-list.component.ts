@@ -124,7 +124,8 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy {
     const reportData = {
       report: this.reportReason.trim(),
       extraComments: this.reportExtraComments.trim() || undefined,
-      acknowledgmentId: this.selectedAcknowledgment.id
+      acknowledgmentId: this.selectedAcknowledgment.id,
+      idUser: this.currentUserId ? Number(this.currentUserId) : undefined
     };
 
     this.reportService.createReport(reportData)
